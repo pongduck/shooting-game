@@ -3,12 +3,32 @@ let canvas;
 let ctx;
 canvas = document.createElement("canvas")
 ctx = canvas.getContext("2d")
-canvas.width = 400;
-canvas.height = 700;
+canvas.width = 800;
+canvas.height = 690;
 document.body.appendChild(canvas);
 
 let backgroundImage, spaceshipImage, bulletImage, enemyImage, gameOverImage;
-let gameOver = false //true면 게임이 끝남, false면 게임이 끝나지않음
+let gameOver = false; //true면 게임이 끝남, false면 게임이 끝나지않음
+let score = 0; //점수판
+
+//이미지 불러오기
+function loadImage(){
+  backgroundImage = new Image();
+  backgroundImage.src = "img/background.jpg";
+
+  spaceshipImage = new Image();
+  spaceshipImage.src = "img/spaceship.png";
+
+  bulletImage = new Image();
+  bulletImage.src = "img/bullet.png";
+
+  enemyImage = new Image();
+  enemyImage.src = "img/enemy.png";
+
+  gameOverImage = new Image();
+  gameOverImage.src = "img/gameOver.png";
+};
+
 
 //우주선 좌표
 let spaceshipX = canvas.width/2-48;
@@ -22,12 +42,27 @@ function Bullet(){
   this.init = function(){
     this.x = spaceshipX +  41; //중앙에 오기를 바래서 41을 더함
     this.y = spaceshipY;
-
+    this.alive = true; //true면 살아있는 총알, false면 죽은 총알
     bulletList.push(this)
   }
 
   this.update = function(){
     this.y -= 7; //총알이 앞으로 나가야 하니까 
+  }
+
+  this.checkHit = function(){
+    //총알.y <= 적군.y And
+    //총알.x >= 적군.x and 총알.x <= 적군.x + 적군의 넓이
+    for(let i=0; i<enemyList.length; i++){
+      if(
+        this.y <= enemyList[i].y && 
+        this.x >= enemyList[i].x && 
+        this.x <= enemyList[i].x + 48){
+        score ++; //총알이 죽게됨. 적군의 우주선이 없어짐 -> 점수 획득
+        this.alive = false; //죽은 총알
+        enemyList.splice(i,1)
+      }
+    }
   }
 };
 
@@ -64,24 +99,6 @@ function Enemy(){
   }
 };
 
-//이미지 불러오기
-function loadImage(){
-  backgroundImage = new Image();
-  backgroundImage.src = "img/background.jpg";
-
-  spaceshipImage = new Image();
-  spaceshipImage.src = "img/spaceship.png";
-
-  bulletImage = new Image();
-  bulletImage.src = "img/bullet.png";
-
-  enemyImage = new Image();
-  enemyImage.src = "img/enemy.png";
-
-  gameOverImage = new Image();
-  gameOverImage.src = "img/gameOver.png";
-};
-
 //좌우 움직이기
 let keysDown={};
 function setupKeyboardListener(){
@@ -96,6 +113,8 @@ function setupKeyboardListener(){
     }
   })
 };
+
+
 
 function update(){
   if('ArrowRight' in keysDown) {
@@ -126,7 +145,10 @@ function update(){
 
   //총알의 y좌표 업데이트 하는 함수 호출
   for(let i=0; i<bulletList.length; i++){
-    bulletList[i].update()
+    if(bulletList[i].alive){
+      bulletList[i].update() //총알을 쓰면서
+      bulletList[i].checkHit() //총알이 적군을 치느냐
+    }
   }
 
   //적군의 y좌표 업데이트 하는 함수 호출
@@ -144,12 +166,17 @@ function createBullet(){
 
 function render(){
   //배경이미지
-  ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height)
-  ctx.drawImage(spaceshipImage, spaceshipX, spaceshipY)
+  ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(spaceshipImage, spaceshipX, spaceshipY);
+  ctx.fillText(`Score:${score}`, 20, 30); //score
+  ctx.fillStyle = "white";  //score
+  ctx.font = "20px Arial"  //score
 
   //총알이미지
   for(let i=0; i<bulletList.length; i++){
-    ctx.drawImage(bulletImage, bulletList[i].x, bulletList[i].y)
+    if(bulletList[i].alive){ //총알이 살아있을 때만 보여주라는 조건 설정
+      ctx.drawImage(bulletImage, bulletList[i].x, bulletList[i].y)
+    }
   }
 
   //적군이미지
@@ -164,7 +191,7 @@ function main(){
     render()
     requestAnimationFrame(main)
   }else{
-    ctx.drawImage(gameOverImage, 10, 100, 380, 380)
+    ctx.drawImage(gameOverImage, 230, 100, 380, 380)
   }
 };
 
